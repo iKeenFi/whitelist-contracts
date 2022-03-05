@@ -30,18 +30,361 @@ let tokensAndFees = [
     fee: ethers.BigNumber.from("20").mul("1000000"),
   },
 ];
+let whitelistTokens = [
+  tokens["usdc.e"],
+  tokens["usdc"],
+  tokens["mim"],
+  tokens["usdt"],
+  tokens["usdt.e"],
+];
+let fees = [
+  ethers.BigNumber.from("20").mul("1000000"),
+  ethers.BigNumber.from("20").mul("1000000"),
+  ethers.BigNumber.from("20").mul("1000000000000000000"),
+  ethers.BigNumber.from("20").mul("1000000"),
+  ethers.BigNumber.from("20").mul("1000000"),
+];
 
 describe("Whitelist", function () {
   it("Should create the contract", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
     const Whitelist = await ethers.getContractFactory("Whitelist");
 
-    const wl = await Whitelist.deploy(tokensAndFees, 200, false);
+    const wl = await Whitelist.deploy(whitelistTokens, fees, 200, false);
     await wl.deployed();
   });
-  it("Should create the contract", async function () {
-    const Whitelist = await ethers.getContractFactory("Whitelist");
+  it("Should get whitelist NFT after transfer", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
 
-    const wl = await Whitelist.deploy(tokensAndFees, 200, false);
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      false
+    );
+
     await wl.deployed();
+
+    await testToken.approve(
+      wl.address,
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+    await wl.buyWhitelistSpot(testToken.address);
+
+    expect(await testToken.balanceOf(owner.address)).to.equal(0);
+    expect(await wl.balanceOf(owner.address)).to.equal(1);
+  });
+  it("Whitelist NFT should be non-transferable", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      false
+    );
+
+    await wl.deployed();
+
+    await testToken.approve(
+      wl.address,
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+    await wl.buyWhitelistSpot(testToken.address);
+
+    let worked = true;
+    try {
+      await wl.transferFrom(owner.address, wallet2.address, 0);
+      worked = false;
+    } catch (e) {
+      if (worked == false) {
+        throw new Error("NFT was transferred, should be non-transferable.");
+      }
+    }
+  });
+  it("Should revert when trying to buy another whitelist spot", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("40").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      false
+    );
+
+    await wl.deployed();
+
+    await testToken.approve(
+      wl.address,
+      ethers.BigNumber.from("40").mul("1000000000000000000")
+    );
+    await wl.buyWhitelistSpot(testToken.address);
+
+    let worked = true;
+    try {
+      await wl.buyWhitelistSpot(testToken.address);
+      worked = false;
+    } catch (e) {
+      if (worked == false) {
+        throw new Error("Whitelist spot was bought twice.");
+      }
+    }
+  });
+  it("Should revert when inputting an unsupported token", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("40").mul("1000000000000000000")
+    );
+
+    // should be unsupported
+    const testToken2 = await TestingToken.deploy(
+      ethers.BigNumber.from("40").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      false
+    );
+
+    await wl.deployed();
+
+    await testToken.approve(
+      wl.address,
+      ethers.BigNumber.from("40").mul("1000000000000000000")
+    );
+    await testToken2.approve(
+      wl.address,
+      ethers.BigNumber.from("40").mul("1000000000000000000")
+    );
+
+    let worked = true;
+    try {
+      await wl.buyWhitelistSpot(testToken2.address);
+      worked = false;
+    } catch (e) {
+      if (worked == false) {
+        throw new Error("Whitelist spot was bought with wrong token.");
+      }
+    }
+  });
+  it("Should not refund user who paid (refunds off)", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      false
+    );
+
+    await wl.deployed();
+
+    await testToken.approve(
+      wl.address,
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await wl.buyWhitelistSpot(testToken.address);
+
+    let worked = true;
+    try {
+      await wl.gimmeARefund(0);
+      worked = false;
+    } catch (e) {
+      if (worked == false) {
+        throw new Error(
+          "Whitelist spot was refunded when it shouldn't have been."
+        );
+      }
+    }
+  });
+  it("Should refund user who paid (refunds on)", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      true
+    );
+
+    await wl.deployed();
+
+    await testToken.approve(
+      wl.address,
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await wl.buyWhitelistSpot(testToken.address);
+
+    await wl.gimmeARefund(0);
+  });
+  it("Should not refund user who didn't pay (refunds on)", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      true
+    );
+
+    await wl.deployed();
+
+    await testToken.approve(
+      wl.address,
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await wl.addWhitelist(owner.address);
+
+    let worked;
+    try {
+      await wl.gimmeARefund(0);
+      worked = false;
+    } catch (e) {
+      if (worked == false) {
+        throw new Error(
+          "Whitelist spot was refunded when it shouldn't have been."
+        );
+      }
+    }
+  });
+  it("Should withdraw tokens", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      true
+    );
+
+    await wl.deployed();
+
+    // NOTE: no whitelist will be granted when direct erc20 transferring
+    await testToken.transfer(
+      wl.address,
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    expect(await testToken.balanceOf(wl.address)).to.equal(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await wl.withdraw(testToken.address);
+
+    expect(await testToken.balanceOf(wl.address)).equals(0);
+    expect(await testToken.balanceOf(owner.address)).equals(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+  });
+  it("Should withdraw native coin", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address],
+      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      200,
+      true
+    );
+
+    await wl.deployed();
+
+    // NOTE: no whitelist will be granted when direct ether transferring
+    await owner.sendTransaction({
+      to: wl.address,
+      value: ethers.utils.parseEther("1"),
+    });
+
+    expect(await ethers.provider.getBalance(wl.address)).equals(
+      ethers.utils.parseEther("1")
+    );
+
+    await wl.withdraw("0x0000000000000000000000000000000000000000");
+
+    expect(await ethers.provider.getBalance(wl.address)).equals(
+      ethers.utils.parseEther("0")
+    );
   });
 });

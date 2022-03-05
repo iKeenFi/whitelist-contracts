@@ -1,7 +1,9 @@
 {
   "name": "hardhat-project",
   "scripts": {
-    "deploy": "npx hardhat run --network avax scripts/deploy.ts"
+    "deploy": "npx hardhat run --network avax scripts/deploy.ts",
+    "test": "npx hardhat test",
+    "build": "npx hardhat compile"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.5",
