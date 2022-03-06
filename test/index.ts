@@ -49,8 +49,18 @@ describe("Whitelist", function () {
   it("Should create the contract", async function () {
     let [owner, wallet2] = await ethers.getSigners();
     const Whitelist = await ethers.getContractFactory("Whitelist");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
 
-    const wl = await Whitelist.deploy(whitelistTokens, fees, 200, false);
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
+
+    const wl = await Whitelist.deploy(
+      whitelistTokens,
+      fees,
+      200,
+      false,
+      wavax.address
+    );
     await wl.deployed();
   });
   it("Should get whitelist NFT after transfer", async function () {
@@ -58,6 +68,11 @@ describe("Whitelist", function () {
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("20").mul("1000000000000000000")
@@ -69,7 +84,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      false
+      false,
+      wavax.address
     );
 
     await wl.deployed();
@@ -83,11 +99,55 @@ describe("Whitelist", function () {
     expect(await testToken.balanceOf(owner.address)).to.equal(0);
     expect(await wl.balanceOf(owner.address)).to.equal(1);
   });
+  it("Should get whitelist NFT after native transfer", async function () {
+    let [owner, wallet2] = await ethers.getSigners();
+
+    const Whitelist = await ethers.getContractFactory("Whitelist");
+    const TestingToken = await ethers.getContractFactory("TestingToken");
+
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
+
+    const testToken = await TestingToken.deploy(
+      ethers.BigNumber.from("20").mul("1000000000000000000")
+    );
+
+    await testToken.deployed();
+
+    const wl = await Whitelist.deploy(
+      [...whitelistTokens, testToken.address, wavax.address],
+      [
+        ...fees,
+        ethers.BigNumber.from("20").mul("1000000000000000000"),
+        ethers.BigNumber.from("25").mul("10000000000000000"), // 0.25 WAVAX
+      ],
+      200,
+      false,
+      wavax.address
+    );
+
+    await wl.deployed();
+
+    // NOTE: whitelist will be granted when direct ether transferring,
+    // it's a new feature with the receive() function
+    await owner.sendTransaction({
+      to: wl.address,
+      value: ethers.utils.parseEther("1"),
+    });
+
+    expect(await wl.balanceOf(owner.address)).to.equal(1);
+  });
   it("Whitelist NFT should be non-transferable", async function () {
     let [owner, wallet2] = await ethers.getSigners();
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("20").mul("1000000000000000000")
@@ -99,7 +159,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      false
+      false,
+      wavax.address
     );
 
     await wl.deployed();
@@ -125,6 +186,10 @@ describe("Whitelist", function () {
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("40").mul("1000000000000000000")
@@ -136,7 +201,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      false
+      false,
+      wavax.address
     );
 
     await wl.deployed();
@@ -162,6 +228,10 @@ describe("Whitelist", function () {
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("40").mul("1000000000000000000")
@@ -178,7 +248,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      false
+      false,
+      wavax.address
     );
 
     await wl.deployed();
@@ -207,6 +278,10 @@ describe("Whitelist", function () {
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("20").mul("1000000000000000000")
@@ -218,7 +293,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      false
+      false,
+      wavax.address
     );
 
     await wl.deployed();
@@ -247,6 +323,10 @@ describe("Whitelist", function () {
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("20").mul("1000000000000000000")
@@ -258,7 +338,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      true
+      true,
+      wavax.address
     );
 
     await wl.deployed();
@@ -277,6 +358,10 @@ describe("Whitelist", function () {
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("20").mul("1000000000000000000")
@@ -288,7 +373,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      true
+      true,
+      wavax.address
     );
 
     await wl.deployed();
@@ -317,7 +403,10 @@ describe("Whitelist", function () {
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
 
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("20").mul("1000000000000000000")
     );
@@ -328,7 +417,8 @@ describe("Whitelist", function () {
       [...whitelistTokens, testToken.address],
       [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
       200,
-      true
+      true,
+      wavax.address
     );
 
     await wl.deployed();
@@ -350,11 +440,15 @@ describe("Whitelist", function () {
       ethers.BigNumber.from("20").mul("1000000000000000000")
     );
   });
-  it("Should withdraw native coin", async function () {
+  it("Should withdraw native (wrapped) coin", async function () {
     let [owner, wallet2] = await ethers.getSigners();
 
     const Whitelist = await ethers.getContractFactory("Whitelist");
     const TestingToken = await ethers.getContractFactory("TestingToken");
+    const WAVAX = await ethers.getContractFactory("WAVAX");
+
+    const wavax = await WAVAX.deploy();
+    await wavax.deployed();
 
     const testToken = await TestingToken.deploy(
       ethers.BigNumber.from("20").mul("1000000000000000000")
@@ -363,28 +457,41 @@ describe("Whitelist", function () {
     await testToken.deployed();
 
     const wl = await Whitelist.deploy(
-      [...whitelistTokens, testToken.address],
-      [...fees, ethers.BigNumber.from("20").mul("1000000000000000000")],
+      [...whitelistTokens, testToken.address, wavax.address],
+      [
+        ...fees,
+        ethers.BigNumber.from("20").mul("1000000000000000000"),
+        ethers.BigNumber.from("1").mul("1000000000000000000"),
+      ],
       200,
-      true
+      true,
+      wavax.address
     );
 
     await wl.deployed();
 
-    // NOTE: no whitelist will be granted when direct ether transferring
+    // NOTE: whitelist will be granted when direct ether transferring,
+    // it's a new feature with the receive() function
     await owner.sendTransaction({
       to: wl.address,
       value: ethers.utils.parseEther("1"),
     });
 
-    expect(await ethers.provider.getBalance(wl.address)).equals(
-      ethers.utils.parseEther("1")
-    );
+    expect(
+      await wavax.balanceOf(wl.address),
+      "Balance of contract address = 1 wrapped"
+    ).equals(ethers.utils.parseEther("1"));
 
-    await wl.withdraw("0x0000000000000000000000000000000000000000");
+    expect(
+      await ethers.provider.getBalance(wl.address),
+      "Balance of contract address = 0 ether"
+    ).equals(ethers.utils.parseEther("0"));
 
-    expect(await ethers.provider.getBalance(wl.address)).equals(
-      ethers.utils.parseEther("0")
-    );
+    await wl.withdraw(wavax.address);
+
+    expect(
+      await wavax.balanceOf(wl.address),
+      "Balance of contract address = 0 wrapped"
+    ).equals(ethers.utils.parseEther("0"));
   });
 });
